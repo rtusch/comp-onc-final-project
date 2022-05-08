@@ -59,9 +59,14 @@ P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
 
 % run simulation
-for t = 1:tfinal/dt
+for t = 2:tfinal/dt
     for x = 1:sx/dx
         for y = 1:sy/dy
+            N1(x,y,t) = ...
+                (k1*N1(x,y,t-1)*(1-(N1(x,y,t-1)/(th1-a1*M(x,y,t-1)))-(N2(x,y,t-1)/(th2-a2*M(x,y,t-1))))+... %proliferation
+                1+... %diffusion
+                -d1*(1-(exp((H(x,y,t-1)-H1opt)/H1width)^2))... %pH-dependence
+                )*dt+N1(x,y,t-1); %finite difference stuff
         end
     end
 end
