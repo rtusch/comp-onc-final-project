@@ -115,22 +115,22 @@ for t = 2:tfinal/dt
         figure(fign)
         disp(t);
         subplot(2, 3, 1)
-        imagesc(N1(:, :, 1))
+        imagesc(N1(:, :, t))
         colorbar
         subplot(2, 3, 4)
-        imagesc(N2(:, :, 1))
+        imagesc(N2(:, :, t))
         colorbar
         subplot(2, 3, 2)
-        imagesc(H(:, :, 1))
+        imagesc(H(:, :, t))
         colorbar
         subplot(2, 3, 5)
-        imagesc(B(:, :, 1))
+        imagesc(B(:, :, t))
         colorbar
         subplot(2, 3, 3)
-        imagesc(M(:, :, 1))
+        imagesc(M(:, :, t))
         colorbar
         subplot(2, 3, 6)
-        imagesc(P(:, :, 1))
+        imagesc(P(:, :, t))
         colorbar
 
         fign = fign+1;
