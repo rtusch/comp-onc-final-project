@@ -57,39 +57,82 @@ B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
 M(:, :, 1) = Mo; 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
+fign = 1;
 
 % run simulation
 for t = 2:tfinal/dt
-    for x = 1:sx/dx
-        for y = 1:sy/dy
+    for x = 2:sx/dx-1     %im skipping the boundaries for now because i really
+        for y = 2:sy/dy-1 %dont want to deal with the goddamn boudary conditions rn
+            %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
             N1(x,y,t) = ...
-                (k1*N1(x,y,t-1)*(1-(N1(x,y,t-1)/(th1-a1*M(x,y,t-1)))-(N2(x,y,t-1)/(th2-a2*M(x,y,t-1))))+... %proliferation
-                1+... %diffusion
-                -d1*(1-(exp((H(x,y,t-1)-H1opt)/H1width)^2))... %pH-dependence
+                (k1*N1(x,y,t-1)*(1-(N1(x,y,t-1)/(th1-(a1*M(x,y,t-1))))-(N2(x,y,t-1)/(th2-(a2*M(x,y,t-1)))))... %proliferation
+                +Dn1*((1-(N1(x,y,t-1)/(th1-a1*M(x,y,t-1)))-(N2(x,y,t-1)/(th2-a2*M(x,y,t-1))))*(((N1(x-1,y,t-1)-2*N1(x,y,t-1)+N1(x+1,y,t-1))/dx^2) ...
+                +(1/dx)*((N1(x+1,y+1,t-1)-N1(x+1,y-1,t-1))/(2*dy)-(N1(x-1,y+1,t-1)-N1(x-1,y-1,t-1))/(2*dy)) ...
+                +((N1(x,y-1,t-1)-2*N1(x,y,t-1)+N1(x,y+1,t-1))/dy^2)) ...
+                +((1-(N1(x+1,y,t)/(th1-a1*M(x+1,y,t)))-(N2(x+1,y,t)/(th2-a2*M(x+1,y,t)))-1+(N1(x-1,y,t)/(th1-a1*M(x-1,y,t)))+(N2(x-1,y,t)/(th2-a2*M(x-1,y,t))))/dx)...
+                *((N1(x+1,y,t-1)-N1(x-1,y,t-1))/dx+(N1(x,y+1,t-1)-N1(x,y-1,t-1))/dy) ...
+                +((1-(N1(x,y+1,t)/(th1-a1*M(x,y+1,t)))-(N2(x,y+1,t)/(th2-a2*M(x,y+1,t)))-1+(N1(x,y-1,t)/(th1-a1*M(x,y-1,t)))+(N2(x,y-1,t)/(th2-a2*M(x,y-1,t))))/dx)...
+                *((N1(x+1,y,t-1)-N1(x-1,y,t-1))/dx+(N1(x,y+1,t-1)-N1(x,y-1,t-1))/dy))... %diffusion
+                -d1*(1-exp(((H(x,y,t-1)-H1opt)/H1width)^2))... %pH-dependence
                 )*dt+N1(x,y,t-1); %finite difference stuff
+
+            N2(x,y,t) = ...
+                (k2*N2(x,y,t-1)*(1-(N1(x,y,t-1)/(th1-(a1*M(x,y,t-1))))-(N2(x,y,t-1)/(th2-(a2*M(x,y,t-1)))))... %proliferation
+                +Dn2*((1-(N1(x,y,t-1)/(th1-a1*M(x,y,t-1)))-(N2(x,y,t-1)/(th2-a2*M(x,y,t-1))))*(((N2(x-1,y,t-1)-2*N2(x,y,t-1)+N2(x+1,y,t-1))/dx^2) ...
+                +(1/dx)*((N2(x+1,y+1,t-1)-N2(x+1,y-1,t-1))/(2*dy)-(N2(x-1,y+1,t-1)-N2(x-1,y-1,t-1))/(2*dy)) ...
+                +((N2(x,y-1,t-1)-2*N2(x,y,t-1)+N2(x,y+1,t-1))/dy^2)) ...
+                +((1-(N1(x+1,y,t)/(th1-a1*M(x+1,y,t)))-(N2(x+1,y,t)/(th2-a2*M(x+1,y,t)))-1+(N1(x-1,y,t)/(th1-a1*M(x-1,y,t)))+(N2(x-1,y,t)/(th2-a2*M(x-1,y,t))))/dx)...
+                *((N2(x+1,y,t-1)-N2(x-1,y,t-1))/dx+(N2(x,y+1,t-1)-N2(x,y-1,t-1))/dy) ...
+                +((1-(N1(x,y+1,t)/(th1-a1*M(x,y+1,t)))-(N2(x,y+1,t)/(th2-a2*M(x,y+1,t)))-1+(N1(x,y-1,t)/(th1-a1*M(x,y-1,t)))+(N2(x,y-1,t)/(th2-a2*M(x,y-1,t))))/dx)...
+                *((N2(x+1,y,t-1)-N2(x-1,y,t-1))/dx+(N2(x,y+1,t-1)-N2(x,y-1,t-1))/dy))... %diffusion
+                -d2*(1-exp(((H(x,y,t-1)-H2opt)/H2width)^2))... %pH-dependence
+                )*dt+N2(x,y,t-1); %finite difference stuff
+
+            H(x,y,t) = (Dh*((H(x-1,y,t-1)-2*H(x,y,t-1)+H(x+1,y,t-1))/dx^2 ...
+                +(H(x,y-1,t-1)-2*H(x,y,t-1)+H(x,y+1,t-1))/dy^2)... %diffusion
+                +kacid*N2(x,y,t-1)...%acid production by tumor cells
+                -dh*(H(x,y,t-1)-Ho)...  %hydrogen uptake
+                -kneut*H(x,y,t-1)*B(x,y,t-1)...   %acid-base neutralization
+                )*dt+H(x,y,t-1); %finite difference
+
+            B(x,y,t) = (Db*((B(x-1,y,t-1)-2*B(x,y,t-1)+B(x+1,y,t-1))/dx^2 ...
+                +(B(x,y-1,t-1)-2*B(x,y,t-1)+B(x,y+1,t-1))/dy^2)... %diffusion
+                -kneut*H(x,y,t-1)*B(x,y,t-1)...   %acid-base neutralization
+                )*dt+B(x,y,t-1); %finite difference
+
+            M(x,y,t) = (-(3.4*exp(-1*(-1*log10(H(x,y,t-1))-5.9)^2)+0.5)*P(x,y,t-1)*M(x,y,t-1)...
+                )*dt+M(x,y,t-1);
+
+            P(x,y,t) = (Dp*((P(x-1,y,t-1)-2*P(x,y,t-1)+P(x+1,y,t-1))/dx^2 ...
+                +(P(x,y-1,t-1)-2*P(x,y,t-1)+P(x,y+1,t-1))/dy^2)... %diffusion
+                +kp*N2(x,y,t-1)... %MMP production by tumor cells
+                -dp*P(x,y,t-1)...   %MMP degredation
+                )*dt+P(x,y,t-1);
         end
     end
+    if mod(t, 100) == 0
+        % print plots
+        figure(fign)
+        disp(t);
+        subplot(2, 3, 1)
+        imagesc(N1(:, :, 1))
+        colorbar
+        subplot(2, 3, 4)
+        imagesc(N2(:, :, 1))
+        colorbar
+        subplot(2, 3, 2)
+        imagesc(H(:, :, 1))
+        colorbar
+        subplot(2, 3, 5)
+        imagesc(B(:, :, 1))
+        colorbar
+        subplot(2, 3, 3)
+        imagesc(M(:, :, 1))
+        colorbar
+        subplot(2, 3, 6)
+        imagesc(P(:, :, 1))
+        colorbar
+
+        fign = fign+1;
+    end
 end
-
-
-
-% print plots
-
-subplot(2, 3, 1)
-imagesc(N1(:, :, 1))
-colorbar
-subplot(2, 3, 4)
-imagesc(N2(:, :, 1))
-colorbar
-subplot(2, 3, 2)
-imagesc(H(:, :, 1))
-colorbar
-subplot(2, 3, 5)
-imagesc(B(:, :, 1))
-colorbar
-subplot(2, 3, 3)
-imagesc(M(:, :, 1))
-colorbar
-subplot(2, 3, 6)
-imagesc(P(:, :, 1))
-colorbar
