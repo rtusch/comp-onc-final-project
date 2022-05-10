@@ -114,13 +114,13 @@ for t = 2:tfinal/dt
 
             N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
             N1_DIF = Dn1*LIM_TOT*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
-%             N1_PH = -d1*(1-exp(((H(x,y,t-1)-H1opt)/H1width)^2))*N1(x,y,t-1); %pH-dependence
-            N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF);
+            N1_PH = -d1*(1-exp(((H(x,y,t-1)-H1opt)/H1width)^2))*N1(x,y,t-1); %pH-dependence
+            N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF + N1_PH);
 
             N2_PLF = k2*N2(x,y,t-1)*LIM_TOT; %proliferative term
             N2_DIF = Dn2*LIM_TOT*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
-%             N2_PH = -d2*(1-exp(((H(x,y,t-1)-H2opt)/H2width)^2))*N2(x,y,t-1); %pH-dependence
-            N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF);
+            N2_PH = -d2*(1-exp(((H(x,y,t-1)-H2opt)/H2width)^2))*N2(x,y,t-1); %pH-dependence
+            N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF + N2_PH);
 
             H_DIF = Dh*(H_xx + H_yy); %diffusion
             H_PROD = kacid*N2(x,y,t-1); %acid production by tumor cells
