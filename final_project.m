@@ -43,7 +43,7 @@ N1o = th1*0.1; %estimated as 1/10th of carrying capacity
 
 dx = 0.1; %cm
 dy = 0.1; %cm
-dt = 0.02; %day
+dt = 0.002; %day
 sx = 10; %cm
 sy = 10; %cm
 tfinal = 20; %days
@@ -182,10 +182,6 @@ for t = 2:tfinal/dt
             %im going to do a check here for any negative values
             %things keep being negative and screwing all the other
             %equations up
-            %i think its due to too big a dt causing larger degredation
-            %than production, but i dont want to change dt
-            %this is hacky and not how things should be handled, but i just
-            %want to finish this project
             N1(x,y,t) = checkbounds(N1(x,y,t),0,th1);
             N2(x,y,t) = checkbounds(N2(x,y,t),0,th2);
             H(x,y,t) = checkbounds(H(x,y,t),0,1); %1mmol/cm^3 is pH 0
@@ -194,7 +190,7 @@ for t = 2:tfinal/dt
             P(x,y,t) = checkbounds(P(x,y,t),0,1E10);
         end
     end
-    if mod(t, 100) == 0
+    if mod(t, 1000) == 0
         % print plots
         disp(t);
         figure(fign)
