@@ -112,7 +112,7 @@ for t = 2:tfinal/dt
                 P_yy = (1/dy^2)*(P(x,y+1,t-1)+P(x,y-1,t-1)-2*P(x,y,t-1));
             end
 
-            LIM = 1-(N1(x,y,t-1)/(th1-(a1*M(x,y,t-1))))-(N2(x,y,t-1)/(th2-(a2*M(x,y,t-1)))); %limiting term
+            LIM = (1-(N1(x,y,t-1)/th1)-(N2(x,y,t-1)/th2))*(1-(M(x,y,t-1)/Mo)); %limiting term
 
             N1_PLF = k1*N1(x,y,t-1)*LIM; %proliferative term
             N1_DIF = Dn1*LIM*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
