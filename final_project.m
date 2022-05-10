@@ -16,14 +16,19 @@ Dn1 = 1.73E-05;
 Dn2 = 1.73E-05;
 d1 = 3.46E-01;
 d2 = 5.53E-01;
-H1opt = 3.98E-08;
-H1width = 3.98E-12;
-H2opt = 1.58E-07;
-H2width = 1.60E-11;
+%H1opt = 3.98E-08;
+%H1width = 3.98E-12;
+%H2opt = 1.58E-07;
+%H2width = 1.60E-11;
+H1opt = 7.4;
+H1width = 11.4;
+H2opt = 6.8;
+H2width = 10.8;
 Dh = 4.32E-01;
 kacid = 2.55E-22;
 dh = 2.59E+03;
-Ho = 3.98E-08;
+Ho = 3.98E-08;  %pH 7.4 (10^-7.4)
+Htumor = 1.58E-07;  %pH 6.8 (10^-6.8)
 kneut = 1; %estimate
 Db = 9.50E-01;
 Dp = 8.21E-04;
@@ -55,15 +60,42 @@ load('cellmaps.mat');
 N1(:, :, 1) = n1init*N1o; 
 N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 
-H(:, :, 1) = Ho;
+H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
 B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
-M(:, :, 1) = Mo; 
+M(:, :, 1) = Mo-n2init*0.5; %assume matrix is half degraded where tumor is 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
 fign = 1;
+        figure(fign)
+        subplot(2, 3, 1)
+        imagesc(N1(:, :, 1))
+        title("N_1")
+        colorbar
+        subplot(2, 3, 4)
+        imagesc(N2(:, :, 1))
+        title("N_2")
+        colorbar
+        subplot(2, 3, 2)
+        imagesc(H(:, :, 1))
+        title("H")
+        colorbar
+        subplot(2, 3, 5)
+        imagesc(B(:, :, 1))
+        title("B")
+        colorbar
+        subplot(2, 3, 3)
+        imagesc(M(:, :, 1))
+        title("M")
+        colorbar
+        subplot(2, 3, 6)
+        imagesc(P(:, :, 1))
+        title("P")
+        colorbar
 
+        fign = fign+1;
 %% run simulation
 for t = 2:tfinal/dt
+    disp(t)
     for x = 1:sx/dx
         for y = 1:sy/dy
             %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
@@ -112,14 +144,23 @@ for t = 2:tfinal/dt
             MAT_LIM = 1-(M(x,y,t-1)/Mo); %limiting term due to ECM
             LIM_TOT = CARCAP_LIM*MAT_LIM;
 
+            if H(x,y,t-1)<0
+                %this is a weird hacky thing for the N1(), N2() and M() 
+                %calculation because log10() of a negative value gives 
+                %complex values and messes everything up. i cant figure out
+                %why H would ever be negative though.
+                H(x,y,t-1) = 0;
+            end
+
             N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
             N1_DIF = Dn1*LIM_TOT*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
-            N1_PH = -d1*(1-exp(((H(x,y,t-1)-H1opt)/H1width)^2))*N1(x,y,t-1); %pH-dependence
+            %N1_PH = -d1*(1-exp(-1*(((H(x,y,t-1)-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
+            N1_PH = -d1*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
             N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF + N1_PH);
 
             N2_PLF = k2*N2(x,y,t-1)*LIM_TOT; %proliferative term
             N2_DIF = Dn2*LIM_TOT*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
-            N2_PH = -d2*(1-exp(((H(x,y,t-1)-H2opt)/H2width)^2))*N2(x,y,t-1); %pH-dependence
+            N2_PH = -d2*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H2opt)/H2width)^2)))*N2(x,y,t-1); %pH-dependence
             N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF + N2_PH);
 
             H_DIF = Dh*(H_xx + H_yy); %diffusion
@@ -141,48 +182,54 @@ for t = 2:tfinal/dt
             P(x,y,t) = P(x,y,t-1) + dt*(P_DIF + P_PROD + P_DEG);
         end
     end
-    if mod(t, 100) == 0
+    if mod(t, 1) == 0
         % print plots
-%         disp(t);
-%         figure(fign)
-%         subplot(2, 3, 1)
+        disp(t);
+        figure(fign)
+        subplot(2, 3, 1)
+        imagesc(N1(:, :, t))
+        title("N_1")
+        colorbar
+        subplot(2, 3, 4)
+        imagesc(N2(:, :, t))
+        title("N_2")
+        colorbar
+        subplot(2, 3, 2)
+        imagesc(H(:, :, t))
+        title("H")
+        colorbar
+        subplot(2, 3, 5)
+        imagesc(B(:, :, t))
+        title("B")
+        colorbar
+        subplot(2, 3, 3)
+        imagesc(M(:, :, t))
+        title("M")
+        colorbar
+        subplot(2, 3, 6)
+        imagesc(P(:, :, t))
+        title("P")
+        colorbar
+
+        fign = fign+1;
+        drawnow;
+
+%         if t == 100
+%             subplot(2, 1, 1)
+%             imagesc(N1(:, :, 1))
+%             colorbar
+%             subplot(2, 1, 2)
+%             imagesc(N2(:, :, 1))
+%             colorbar
+%             drawnow
+%         end
+%         subplot(2, 1, 1)
 %         imagesc(N1(:, :, t))
 %         colorbar
-%         subplot(2, 3, 4)
+%         subplot(2, 1, 2)
 %         imagesc(N2(:, :, t))
 %         colorbar
-%         subplot(2, 3, 2)
-%         imagesc(H(:, :, t))
-%         colorbar
-%         subplot(2, 3, 5)
-%         imagesc(B(:, :, t))
-%         colorbar
-%         subplot(2, 3, 3)
-%         imagesc(M(:, :, t))
-%         colorbar
-%         subplot(2, 3, 6)
-%         imagesc(P(:, :, t))
-%         colorbar
-% 
-%         fign = fign+1;
-%         drawnow;
-
-        if t == 100
-            subplot(2, 1, 1)
-            imagesc(N1(:, :, 1))
-            colorbar
-            subplot(2, 1, 2)
-            imagesc(N2(:, :, 1))
-            colorbar
-            drawnow
-        end
-        subplot(2, 1, 1)
-        imagesc(N1(:, :, t))
-        colorbar
-        subplot(2, 1, 2)
-        imagesc(N2(:, :, t))
-        colorbar
-        drawnow
+%         drawnow
         
 
     end
