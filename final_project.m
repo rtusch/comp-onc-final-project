@@ -150,14 +150,6 @@ for t = 2:tfinal/dt
             MAT_LIM = 1-(M(x,y,t-1)/Mo); %limiting term due to ECM
             LIM_TOT = CARCAP_LIM*MAT_LIM;
 
-            if H(x,y,t-1)<0
-                %this is a weird hacky thing for the N1(), N2() and M() 
-                %calculation because log10() of a negative value gives 
-                %complex values and messes everything up. i cant figure out
-                %why H would ever be negative though.
-                H(x,y,t-1) = 0;
-            end
-
             N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
             N1_DIF = Dn1*LIM_TOT*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
             %N1_PH = -d1*(1-exp(-1*(((H(x,y,t-1)-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
@@ -186,9 +178,23 @@ for t = 2:tfinal/dt
             P_PROD = kp*N2(x,y,t-1); %MMP production by tumor cells
             P_DEG = -dp*P(x,y,t-1);   %MMP degredation
             P(x,y,t) = P(x,y,t-1) + dt*(P_DIF + P_PROD + P_DEG);
+
+            %im going to do a check here for any negative values
+            %things keep being negative and screwing all the other
+            %equations up
+            %i think its due to too big a dt causing larger degredation
+            %than production, but i dont want to change dt
+            %this is hacky and not how things should be handled, but i just
+            %want to finish this project
+            N1(x,y,t) = checkbounds(N1(x,y,t),0,th1);
+            N2(x,y,t) = checkbounds(N2(x,y,t),0,th2);
+            H(x,y,t) = checkbounds(H(x,y,t),0,1); %1mmol/cm^3 is pH 0
+            B(x,y,t) = checkbounds(B(x,y,t),0,1E10);
+            M(x,y,t) = checkbounds(M(x,y,t),0,Mo); %should not ever increase over starting concentration
+            P(x,y,t) = checkbounds(P(x,y,t),0,1E10);
         end
     end
-    if mod(t, 1) == 0
+    if mod(t, 100) == 0
         % print plots
         disp(t);
         figure(fign)
@@ -239,4 +245,13 @@ for t = 2:tfinal/dt
         
 
     end
+end
+
+function r = checkbounds(f, lb, ub)
+    if f < lb
+        f = lb;
+    elseif f > ub
+        f = ub;
+    end
+    r = f;
 end
