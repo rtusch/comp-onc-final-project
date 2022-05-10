@@ -64,10 +64,6 @@ fign = 1;
 
 %% run simulation
 for t = 2:tfinal/dt
-    disp(t)
-    if t ~= 2
-        disp(LIM)
-    end
     for x = 1:sx/dx
         for y = 1:sy/dy
             %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
@@ -112,15 +108,17 @@ for t = 2:tfinal/dt
                 P_yy = (1/dy^2)*(P(x,y+1,t-1)+P(x,y-1,t-1)-2*P(x,y,t-1));
             end
 
-            LIM = 1-(N1(x,y,t-1)/(th1-(a1*M(x,y,t-1))))-(N2(x,y,t-1)/(th2-(a2*M(x,y,t-1)))); %limiting term
+            CARCAP_LIM = 1-(N1(x,y,t-1)/th1)-(N2(x,y,t-1)/th2); %limiting term for cell # due to carcap
+            MAT_LIM = 1-(M(x,y,t-1)/Mo); %limiting term due to ECM
+            LIM_TOT = CARCAP_LIM*MAT_LIM;
 
-            N1_PLF = k1*N1(x,y,t-1)*LIM; %proliferative term
-            N1_DIF = Dn1*LIM*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
+            N1_DIF = Dn1*LIM_TOT*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
 %             N1_PH = -d1*(1-exp(((H(x,y,t-1)-H1opt)/H1width)^2))*N1(x,y,t-1); %pH-dependence
             N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF);
 
-            N2_PLF = k2*N2(x,y,t-1)*LIM; %proliferative term
-            N2_DIF = Dn2*LIM*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N2_PLF = k2*N2(x,y,t-1)*LIM_TOT; %proliferative term
+            N2_DIF = Dn2*LIM_TOT*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
 %             N2_PH = -d2*(1-exp(((H(x,y,t-1)-H2opt)/H2width)^2))*N2(x,y,t-1); %pH-dependence
             N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF);
 
@@ -143,7 +141,7 @@ for t = 2:tfinal/dt
             P(x,y,t) = P(x,y,t-1) + dt*(P_DIF + P_PROD + P_DEG);
         end
     end
-    if mod(t, 10) == 0
+    if mod(t, 100) == 0
         % print plots
 %         disp(t);
 %         figure(fign)
@@ -169,7 +167,7 @@ for t = 2:tfinal/dt
 %         fign = fign+1;
 %         drawnow;
 
-        if t == 10
+        if t == 100
             subplot(2, 1, 1)
             imagesc(N1(:, :, 1))
             colorbar
