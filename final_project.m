@@ -34,6 +34,7 @@ Db = 9.50E-01;
 Dp = 8.21E-04;
 kp = 1.3E-12;
 dp = 1E6;
+km = 8.64E-3; %make this lower if M() keeps going negative
 
 Bpulse = 0; %change this to assess treatment efficacy
 Mo = 1.33E-2;
@@ -62,7 +63,7 @@ N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 
 H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
 B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
-M(:, :, 1) = Mo-n2init*0.5; %assume matrix is half degraded where tumor is 
+M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
 fign = 1;
@@ -177,8 +178,8 @@ for t = 2:tfinal/dt
             B_NEU = -kneut*H(x,y,t-1)*B(x,y,t-1);   %acid-base neutralization
             B(x,y,t) = B(x,y,t-1) + dt*(B_DIF + B_NEU);
 
-            M(x,y,t) = (-(3.4*exp(-1*(-1*log10(H(x,y,t-1))-5.9)^2)+0.5)*P(x,y,t-1)*M(x,y,t-1)...
-                )*dt+M(x,y,t-1);
+            M_DEG = -1*km*(0.9*exp(-1*(-1*log10(H(x,y,t-1))-5.9)^2)+0.1)*P(x,y,t-1)*M(x,y,t-1);
+            M(x,y,t) = M(x,y,t-1) + dt*M_DEG;
 
             P_DIF = Dp*(P_xx + P_yy);
             P_PROD = kp*N2(x,y,t-1); %MMP production by tumor cells
