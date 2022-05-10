@@ -32,11 +32,11 @@ Htumor = 1.58E-07;  %pH 6.8 (10^-6.8)
 kneut = 1; %estimate
 Db = 9.50E-01;
 Dp = 8.21E-04;
-kp = 0.01; %estimate
-dp = 0.001; %estimate
+kp = 1.3E-12;
+dp = 1E6;
 
-Bpulse = 1; %estimate
-Mo = 1; %estimate
+Bpulse = 0; %change this to assess treatment efficacy
+Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
 dx = 0.1; %cm
@@ -99,6 +99,10 @@ for t = 2:tfinal/dt
     for x = 1:sx/dx
         for y = 1:sy/dy
             %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
+
+            if x == 50 && y == 50
+                disp("pause here")
+            end
 
             if x == 1
                 N1_xx = (1/dx^2)*(2*N1(x+1,y,t-1)-2*N1(x,y,t-1)); %second derivative of N1 wrt x
