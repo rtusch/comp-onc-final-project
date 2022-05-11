@@ -111,18 +111,24 @@ for t = 2:tfinal/dt
                 H_xx = (1/dx^2)*(2*H(x+1,y,t-1)-2*H(x,y,t-1)); %second derivative of H wrt x
                 B_xx = (1/dx^2)*(2*B(x+1,y,t-1)-2*B(x,y,t-1)); %second derivative of B wrt x
                 P_xx = (1/dx^2)*(2*P(x+1,y,t-1)-2*P(x,y,t-1)); %second derivative of P wrt x
+                ADJ_LIM_X1 = (1-(N1(x+1,y,t-1)/th1)-(N2(x+1,y,t-1)/th2))*(1-(M(x+1,y,t-1)/Mo));
+                ADJ_LIM_X2 = 0;
             elseif x == sx/dx
                 N1_xx = (1/dx^2)*(2*N1(x-1,y,t-1)-2*N1(x,y,t-1));
                 N2_xx = (1/dx^2)*(2*N2(x-1,y,t-1)-2*N2(x,y,t-1));
                 H_xx = (1/dx^2)*(2*H(x-1,y,t-1)-2*H(x,y,t-1));
                 B_xx = (1/dx^2)*(2*B(x-1,y,t-1)-2*B(x,y,t-1));
                 P_xx = (1/dx^2)*(2*P(x-1,y,t-1)-2*P(x,y,t-1));
+                ADJ_LIM_X1 = 0;
+                ADJ_LIM_X2 = (1-(N1(x-1,y,t-1)/th1)-(N2(x-1,y,t-1)/th2))*(1-(M(x-1,y,t-1)/Mo));
             else
                 N1_xx = (1/dx^2)*(N1(x+1,y,t-1)+N1(x-1,y,t-1)-2*N1(x,y,t-1));
                 N2_xx = (1/dx^2)*(N2(x+1,y,t-1)+N2(x-1,y,t-1)-2*N2(x,y,t-1));
                 H_xx = (1/dx^2)*(H(x+1,y,t-1)+H(x-1,y,t-1)-2*H(x,y,t-1));
                 B_xx = (1/dx^2)*(B(x+1,y,t-1)+B(x-1,y,t-1)-2*B(x,y,t-1));
                 P_xx = (1/dx^2)*(P(x+1,y,t-1)+P(x-1,y,t-1)-2*P(x,y,t-1));
+                ADJ_LIM_X1 = (1-(N1(x+1,y,t-1)/th1)-(N2(x+1,y,t-1)/th2))*(1-(M(x+1,y,t-1)/Mo));
+                ADJ_LIM_X2 = (1-(N1(x-1,y,t-1)/th1)-(N2(x-1,y,t-1)/th2))*(1-(M(x-1,y,t-1)/Mo));
             end
             
             if y == 1
@@ -131,32 +137,47 @@ for t = 2:tfinal/dt
                 H_yy = (1/dy^2)*(2*H(x,y+1,t-1)-2*H(x,y,t-1));
                 B_yy = (1/dy^2)*(2*B(x,y+1,t-1)-2*B(x,y,t-1));
                 P_yy = (1/dy^2)*(2*P(x,y+1,t-1)-2*P(x,y,t-1));
+                ADJ_LIM_Y1 = (1-(N1(x,y+1,t-1)/th1)-(N2(x,y+1,t-1)/th2))*(1-(M(x,y+1,t-1)/Mo));
+                ADJ_LIM_Y2 = 0;
             elseif y == sy/dy
                 N1_yy = (1/dy^2)*(2*N1(x,y-1,t-1)-2*N1(x,y,t-1));
                 N2_yy = (1/dy^2)*(2*N2(x,y-1,t-1)-2*N2(x,y,t-1));
                 H_yy = (1/dy^2)*(2*H(x,y-1,t-1)-2*H(x,y,t-1));
                 B_yy = (1/dy^2)*(2*B(x,y-1,t-1)-2*B(x,y,t-1));
                 P_yy = (1/dy^2)*(2*P(x,y-1,t-1)-2*P(x,y,t-1));
+                ADJ_LIM_Y1 = 0;
+                ADJ_LIM_Y2 = (1-(N1(x,y-1,t-1)/th1)-(N2(x,y-1,t-1)/th2))*(1-(M(x,y-1,t-1)/Mo));
             else
                 N1_yy = (1/dy^2)*(N1(x,y+1,t-1)+N1(x,y-1,t-1)-2*N1(x,y,t-1));
                 N2_yy = (1/dy^2)*(N2(x,y+1,t-1)+N2(x,y-1,t-1)-2*N2(x,y,t-1));
                 H_yy = (1/dy^2)*(H(x,y+1,t-1)+H(x,y-1,t-1)-2*H(x,y,t-1));
                 B_yy = (1/dy^2)*(B(x,y+1,t-1)+B(x,y-1,t-1)-2*B(x,y,t-1));
                 P_yy = (1/dy^2)*(P(x,y+1,t-1)+P(x,y-1,t-1)-2*P(x,y,t-1));
+                ADJ_LIM_Y1 = (1-(N1(x,y+1,t-1)/th1)-(N2(x,y+1,t-1)/th2))*(1-(M(x,y+1,t-1)/Mo));
+                ADJ_LIM_Y2 = (1-(N1(x,y-1,t-1)/th1)-(N2(x,y-1,t-1)/th2))*(1-(M(x,y-1,t-1)/Mo));
             end
 
             CARCAP_LIM = 1-(N1(x,y,t-1)/th1)-(N2(x,y,t-1)/th2); %limiting term for cell # due to carcap
             MAT_LIM = 1-(M(x,y,t-1)/Mo); %limiting term due to ECM
             LIM_TOT = CARCAP_LIM*MAT_LIM;
 
+            %robin: i'm making ADJ_LIM because diffusion needs to be
+            %limited by the matrix concentration surrounding the cells, and
+            %we didnt take the gradient of the limiting term when
+            %implementing diffusion below. I'm not exactly sure how to
+            %implement it correctly but if you know, go ahead. Otherwise,
+            %I'm just gonna take the limiting term as the average of the
+            %surrounding voxels.
+            ADJ_LIM = 0.2*(LIM_TOT+ADJ_LIM_X1+ADJ_LIM_X2+ADJ_LIM_Y1+ADJ_LIM_Y2);
+
             N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
-            N1_DIF = Dn1*LIM_TOT*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N1_DIF = Dn1*ADJ_LIM*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
             %N1_PH = -d1*(1-exp(-1*(((H(x,y,t-1)-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
             N1_PH = -d1*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
             N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF + N1_PH);
 
             N2_PLF = k2*N2(x,y,t-1)*LIM_TOT; %proliferative term
-            N2_DIF = Dn2*LIM_TOT*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N2_DIF = Dn2*ADJ_LIM*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
             N2_PH = -d2*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H2opt)/H2width)^2)))*N2(x,y,t-1); %pH-dependence
             N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF + N2_PH);
 
