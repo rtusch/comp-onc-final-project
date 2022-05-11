@@ -25,9 +25,8 @@ H1width = 11.4;
 H2opt = 6.8;
 H2width = 10.8;
 Dh = 4.32E-01;
-kacid = 2.55E-22;
-%dh = 2.59E+03;
-dh = 0.01; %i changed this because uptake needs to be <1 so H does not become negative
+kacid = 1.9E-12/1000; %changed this because uptake/production was dominating diffusion
+dh = 2.59E+03/1000; %changed this because uptake/production was dominating diffusion
 Ho = 3.98E-08;  %pH 7.4 (10^-7.4)
 Htumor = 1.58E-07;  %pH 6.8 (10^-6.8)
 kneut = 1; %estimate
@@ -62,39 +61,39 @@ load('cellmaps.mat');
 N1(:, :, 1) = n1init*N1o; 
 N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 
-H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
+H(:, :, 1) = Ho; %initialize tumor and healthy tissue with respective pH values
 B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
-M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
+%M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
 fign = 1;
-        figure(fign)
-        subplot(2, 3, 1)
-        imagesc(N1(:, :, 1))
-        title("N_1")
-        colorbar
-        subplot(2, 3, 4)
-        imagesc(N2(:, :, 1))
-        title("N_2")
-        colorbar
-        subplot(2, 3, 2)
-        imagesc(H(:, :, 1))
-        title("H")
-        colorbar
-        subplot(2, 3, 5)
-        imagesc(B(:, :, 1))
-        title("B")
-        colorbar
-        subplot(2, 3, 3)
-        imagesc(M(:, :, 1))
-        title("M")
-        colorbar
-        subplot(2, 3, 6)
-        imagesc(P(:, :, 1))
-        title("P")
-        colorbar
+figure(fign)
+subplot(2, 3, 1)
+imagesc(N1(:, :, 1))
+title("N_1")
+colorbar
+subplot(2, 3, 4)
+imagesc(N2(:, :, 1))
+title("N_2")
+colorbar
+subplot(2, 3, 2)
+imagesc(-log10(H(:, :, 1)))
+title("pH")
+colorbar
+subplot(2, 3, 5)
+imagesc(B(:, :, 1))
+title("B")
+colorbar
+subplot(2, 3, 3)
+imagesc(M(:, :, 1))
+title("M")
+colorbar
+subplot(2, 3, 6)
+imagesc(P(:, :, 1))
+title("P")
+colorbar
 
-        fign = fign+1;
+fign = fign+1;
 %% run simulation
 for t = 2:tfinal/dt
     disp(t)
@@ -102,7 +101,7 @@ for t = 2:tfinal/dt
         for y = 1:sy/dy
             %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
 
-            if x == 50 && y == 50
+            if x == 43 && y == 50 && t>7000 && mod(t,1000)==0
                 disp("pause here")
             end
 
@@ -203,8 +202,8 @@ for t = 2:tfinal/dt
         title("N_2")
         colorbar
         subplot(2, 3, 2)
-        imagesc(H(:, :, t))
-        title("H")
+        imagesc(-log10(H(:, :, t)))
+        title("pH")
         colorbar
         subplot(2, 3, 5)
         imagesc(B(:, :, t))
