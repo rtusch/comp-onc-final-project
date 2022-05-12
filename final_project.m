@@ -24,10 +24,10 @@ d2 = 5.53E-01;
 H1opt = 7.4;
 H1width = 11.4;
 H2opt = 6.8;
-H2width = 10.8;
+H2width = 2.5; %10.8
 Dh = 4.32E-01/10; %had to divide this by 10 because it was causing difficulties with the finite difference, the behavior still appears essentially the same 
 kacid = 1.9E-12/1000; %changed this because uptake/production was dominating diffusion
-dh = 2.59E+03/1000; %changed this because uptake/production was dominating diffusion
+dh = 2.59E+03/500; %changed this because uptake/production was dominating diffusion
 Ho = 3.98E-08;  %pH 7.4 (10^-7.4)
 Htumor = 1.58E-07;  %pH 6.8 (10^-6.8)
 kneut = 1E6; %estimate
@@ -37,8 +37,12 @@ kp = 1.3E-12;
 dp = 0.013; %a lot slower: P was being degraded too fast and wasn't changing M
 km = 8.64E-3*1000; %make this lower if M() keeps going negative
 
-Bpulse = 1E-5; %mmol/cm^3 (molar), change this to assess treatment efficacy
-treattimes = [2000];
+Btot = 5E-5; %mmol/cm^3 (molar, 50E-6=50uM)
+%treattimes = []; %change this to assess treatment efficacy
+%treattimes = [5000];
+treattimes = [2500 5000 7500];
+%treattimes = [1500 3000 4500 6000 7500 9000];
+Bpulse = Btot/size(treattimes,2);
 Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
@@ -212,7 +216,7 @@ for t = 2:tfinal/dt
 
 
             %DRUG TREATMENT: change this part to try different treatments
-            if t == treattimes
+            if ismember(t, treattimes)
                 B(:, :, t) = Bpulse;
             end
 
@@ -294,6 +298,15 @@ figure(3)
 plot(squeeze(-log10(H(50, 50, :))))
 xlabel("Time")
 ylabel("pH at center of tumor")
+
+%Use this code for saving variables for plotting later:
+% N2to = N2;
+% Nt0 = N2;
+% pHt0 = -log10(H);
+% Bt0 = B;
+% Mt0 = M;
+% Pt0 = P;
+% save('t0.mat','Nt0','pHt0','Bt0','Mt0','Pt0')
 
 function r = checkbounds(f, lb, ub, var)
     if f < lb
