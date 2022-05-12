@@ -76,7 +76,7 @@ title("N")
 colorbar
 caxis([0, th2])
 subplot(2, 3, 4)
-tlabel = text(0.45,0.5,"0 days");
+tlabel = text(0,0,"0 days",'FontSize',20);
 set(subplot(2, 3, 4),'visible','off')
 subplot(2, 3, 2)
 imagesc(-log10(H(:, :, 1)))
@@ -237,7 +237,8 @@ for t = 2:tfinal/dt
         colorbar
         caxis([0, th2])
         subplot(2, 3, 4)
-        tlabel = text(0.45,0.5,string(t*dt)+" days");
+        delete(tlabel)
+        tlabel = text(0,0,string(t*dt)+" days",'FontSize',20);
         set(subplot(2, 3, 4),'visible','off')
         subplot(2, 3, 2)
         imagesc(-log10(H(:, :, t)))
