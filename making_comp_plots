@@ -2,21 +2,23 @@ clc
 clear all
 close all
 %% Plotting Preamble
-set(gca,'fontname','Times')
+for ff = 1:6
+    figure(ff)
+set(gca,'fontname','Arial')
 set(groot,'defaultAxesTitleFontSizeMultiplier',1)
 set(groot,'defaultErrorbarLineWidth', 0.5)
-set(groot,'defaultAxesFontName','Times')
+set(groot,'defaultAxesFontName','Arial')
 set(groot,'defaultAxesPlotBoxAspectRatioMode','manual')
 set(groot,'defaultAxesPlotBoxAspectRatio',[1 1 1])
 set(groot,'defaultAxesDataAspectRatioMode','auto')
 set(groot,'defaultAxesDataAspectRatio',[1 1 1])
-set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 0.6, 0.96]);
 % set(groot,'defaultAxesDataAspectRatio','default')
 
 set(groot,'defaultAxesFontWeight','Normal')
 set(0,'DefaultAxesTitleFontWeight','normal');
 set(groot,'defaultAxesFontSizeMode','manual')
-set(groot,'defaultAxesFontSize',25)
+set(groot,'defaultAxesFontSize',36)
 % set(groot,'defaultAxesFontSize',25)
 set(groot,'defaultAxesTickLabelInterpreter','latex');  
 set(groot,'defaulttextinterpreter','latex');
@@ -36,6 +38,7 @@ set(groot,'defaultAxesColorOrder',co)
 
 set(0, 'DefaultFigureWindowState', 'normal');
 set(groot, 'DefaultFigureVisible', 'on')
+end
 
 %% initialize variables
 % refer to the google doc for a description of each parameter & their sources:
@@ -126,15 +129,17 @@ H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue wit
 M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 
 radius_squared = 100;
-for x = 1:100
+for x = linspace(1,100,1000)
     for y = 1:50
         if (y == floor(50 - sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 - sqrt(radius_squared-(x-50)^2)))
-            P_initial(x,y,1) = 0.01;
+            P_initial(floor(x),y,1) = 0.01;
+            P_initial(ceil(x),y,1) = 0.01;
         end
     end
     for y = 51:100
         if (y == floor(50 + sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 + sqrt(radius_squared-(x-50)^2)))
-            P_initial(x,y,1) = 0.01;
+            P_initial(floor(x),y,1) = 0.01;
+            P_initial(ceil(x),y,1) = 0.01;
         end
     end
 end
@@ -440,7 +445,7 @@ B_notreatment = B;
 P_notreatment = P;
 M_notreatment = M;
 
-%% Plot
+%% sort
 
 N2_fringe_treatment = zeros(100,100,tfinal/dt);
 N2_core_treatment = zeros(100,100,tfinal/dt);
@@ -458,6 +463,7 @@ for x = 1:100
     end
 end
 
+%% plot
 figure(1)
 plot((1:200/dt)*dt, squeeze(sum(sum(N2_treatment)))/(10^10), 'Color', 'black', 'LineStyle','-')
 hold on;
@@ -537,7 +543,7 @@ xlabel("Time (Days)")
 ylabel("pH at edge of tumor")
 ylim([6.5 7.9])
 yticks(linspace(6.5,7.9,8))
-legend("Target Range for Healthy Cells","Range for Tumor Cells","Treatment","No Treatment", 'Location', 'Northeast')
+% legend("Target Range for Healthy Cells","Range for Tumor Cells","Treatment","No Treatment", 'Location', 'Northeast')
 hold off;
 
 %Use this code for saving variables for plotting later:
