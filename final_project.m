@@ -1,7 +1,41 @@
 clc
 clear all
 close all
+%% Plotting Preamble
+set(gca,'fontname','Times')
+set(groot,'defaultAxesTitleFontSizeMultiplier',1)
+set(groot,'defaultErrorbarLineWidth', 0.5)
+set(groot,'defaultAxesFontName','Times')
+set(groot,'defaultAxesPlotBoxAspectRatioMode','manual')
+set(groot,'defaultAxesPlotBoxAspectRatio',[1 1 1])
+set(groot,'defaultAxesDataAspectRatioMode','auto')
+set(groot,'defaultAxesDataAspectRatio',[1 1 1])
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+% set(groot,'defaultAxesDataAspectRatio','default')
 
+set(groot,'defaultAxesFontWeight','Normal')
+set(0,'DefaultAxesTitleFontWeight','normal');
+set(groot,'defaultAxesFontSizeMode','manual')
+set(groot,'defaultAxesFontSize',25)
+% set(groot,'defaultAxesFontSize',25)
+set(groot,'defaultAxesTickLabelInterpreter','latex');  
+set(groot,'defaulttextinterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');
+set(groot,'defaultAxesLabelFontSizeMultiplier',1)
+set(groot,'defaultAxesLineWidth',2)
+set(groot,'defaultScatterLineWidth',2)
+% set(groot,'defaultScatterMarkerFaceColor','k')
+% set(groot,'defaultScatterMarkerEdgeColor','k')
+set(groot,'defaultScatterMarkerFaceColor','default')
+set(groot,'defaultScatterMarkerEdgeColor','default')
+set(groot,'defaultLineColor','k')
+set(groot,'defaultLineLineWidth',2)
+set(groot,'defaultLineMarkerSize',2)
+co = [0,0,0;0 0 1;0 0.5 0;1 0 0;0 0.75 0.75;0.75 0 0.75;0.75 0.75 0;0.25 0.25 0.25];
+set(groot,'defaultAxesColorOrder',co)
+
+set(0, 'DefaultFigureWindowState', 'normal');
+set(groot, 'DefaultFigureVisible', 'on')
 
 %% initialize variables
 % refer to the google doc for a description of each parameter & their sources:
@@ -42,7 +76,7 @@ Btot = 5E-5; %mmol/cm^3 (molar, 50E-6=50uM)
 %treattimes = [5000];
 treattimes = [2500 5000 7500];
 %treattimes = [1500 3000 4500 6000 7500 9000];
-Bpulse = Btot/3;
+Bpulse = Btot/size(treattimes,2);
 Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
@@ -53,6 +87,25 @@ sx = 10; %cm
 sy = 10; %cm
 tfinal = 200; %days
 
+
+%% Fringe matrix
+%build a matrix so that we can determine where the edge of the tumor is
+isFringe = zeros(100,100);
+radius_squared = 80;
+for x = 1:100
+    for y = 1:50
+        if (y <= 50 - sqrt(radius_squared-(x-50)^2))
+            isFringe(x,y) = 1;
+        end
+    end
+    for y = 51:100
+        if (y >= 51 + sqrt(radius_squared-(x-51)^2))
+            isFringe(x,y) = 1;
+        end
+    end
+end
+
+
 %% Initial Conditions
 
 N1 = zeros(sx/dx, sy/dx, tfinal/dt);
@@ -61,6 +114,7 @@ H = zeros(sx/dx, sy/dx, tfinal/dt);
 B = zeros(sx/dx, sy/dx, tfinal/dt);
 M = zeros(sx/dx, sy/dx, tfinal/dt);
 P = zeros(sx/dx, sy/dx, tfinal/dt);
+P_initial = zeros(sx/dx, sy/dx, 1);
 
 load('cellmaps.mat');
 
@@ -70,7 +124,21 @@ N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
 %B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
 M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
-P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
+
+radius_squared = 100;
+for x = 1:100
+    for y = 1:50
+        if (y == floor(50 - sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 - sqrt(radius_squared-(x-50)^2)))
+            P_initial(x,y,1) = 0.01;
+        end
+    end
+    for y = 51:100
+        if (y == floor(50 + sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 + sqrt(radius_squared-(x-50)^2)))
+            P_initial(x,y,1) = 0.01;
+        end
+    end
+end
+P(:, :, 1) = P_initial; %ring of MMPs initially around tumor
 
 fign = 1;
 figure(fign)
@@ -101,11 +169,9 @@ subplot(2, 3, 6)
 imagesc(P(:, :, 1))
 title("P")
 colorbar
-caxis([0, 0.05])
+caxis([0, 0.015])
 
 fign = fign+1;
-
-%pause(3)
 
 %% run simulation
 for t = 2:tfinal/dt
@@ -114,11 +180,6 @@ for t = 2:tfinal/dt
     end
     for x = 1:sx/dx
         for y = 1:sy/dy
-            %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
-
-%             if x == 43 && y == 50 && t>2000 && mod(t,1000)==0
-%                 disp("pause here")
-%             end
 
             if x == 1
                 N1_xx = (1/dx^2)*(2*N1(x+1,y,t-1)-2*N1(x,y,t-1)); %second derivative of N1 wrt x
@@ -176,23 +237,18 @@ for t = 2:tfinal/dt
             MAT_LIM = 1-(M(x,y,t-1)/Mo); %limiting term due to ECM
             LIM_TOT = CARCAP_LIM*MAT_LIM;
 
-            %robin: i'm making ADJ_LIM because diffusion needs to be
-            %limited by the matrix concentration surrounding the cells, and
-            %we didnt take the gradient of the limiting term when
-            %implementing diffusion below. I'm not exactly sure how to
-            %implement it correctly but if you know, go ahead. Otherwise,
-            %I'm just gonna take the limiting term as the average of the
-            %surrounding voxels.
+            %diffusion limited by the matrix concentration surrounding the cells
+            %the limiting term ADJ_LIM is the average of the surrounding voxels
             ADJ_LIM = 0.2*(LIM_TOT+ADJ_LIM_X1+ADJ_LIM_X2+ADJ_LIM_Y1+ADJ_LIM_Y2);
 
             N1_PLF = k1*N1(x,y,t-1)*LIM_TOT; %proliferative term
-            N1_DIF = Dn1*ADJ_LIM*(N1_xx + N1_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N1_DIF = Dn1*ADJ_LIM*(N1_xx + N1_yy); %diffusion term
             %N1_PH = -d1*(1-exp(-1*(((H(x,y,t-1)-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
             N1_PH = -d1*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H1opt)/H1width)^2)))*N1(x,y,t-1); %pH-dependence
             N1(x,y,t) = N1(x,y,t-1) + dt*(N1_PLF + N1_DIF + N1_PH);
 
             N2_PLF = k2*N2(x,y,t-1)*LIM_TOT; %proliferative term
-            N2_DIF = Dn2*ADJ_LIM*(N2_xx + N2_yy); %diffusion term (this isn't right because I didn't do del • lim term)
+            N2_DIF = Dn2*ADJ_LIM*(N2_xx + N2_yy); %diffusion term
             N2_PH = -d2*(1-exp(-1*((((-1*log10(H(x,y,t-1)))-H2opt)/H2width)^2)))*N2(x,y,t-1); %pH-dependence
             N2(x,y,t) = N2(x,y,t-1) + dt*(N2_PLF + N2_DIF + N2_PH);
 
@@ -210,7 +266,11 @@ for t = 2:tfinal/dt
             M(x,y,t) = M(x,y,t-1) + dt*M_DEG;
 
             P_DIF = Dp*(P_xx + P_yy);
-            P_PROD = kp*N2(x,y,t-1); %MMP production by tumor cells
+            if isFringe(x,y)
+                P_PROD = 1*kp*N2(x,y,t-1); %MMP production by tumor cells on outside of tumor
+            else
+                P_PROD = 0.01*kp*N2(x,y,t-1); %MMP production by tumor cells at core of tumor
+            end
             P_DEG = -dp*P(x,y,t-1);   %MMP degredation
             P(x,y,t) = P(x,y,t-1) + dt*(P_DIF + P_PROD + P_DEG);
 
@@ -263,7 +323,7 @@ for t = 2:tfinal/dt
         imagesc(P(:, :, t))
         title("P")
         colorbar
-        caxis([0, 0.05])
+        caxis([0, 0.015])
 
         fign = fign+1;
         drawnow;
@@ -289,15 +349,57 @@ for t = 2:tfinal/dt
     end
 end
 
+N2_fringe = zeros(100,100,tfinal/dt);
+N2_core = zeros(100,100,tfinal/dt);
+for x = 1:100
+    for y = 1:100
+        if isFringe(x,y)
+            N2_fringe(x,y,:) = N2(x,y,:);
+        else
+            N2_core(x,y,:) = N2(x,y,:);
+        end
+    end
+end
+
 figure(2)
-plot(squeeze(sum(sum(N2))))
-xlabel("Time")
-ylabel("Total Number of Tumor Cells")
+plot((1:200/dt)*dt, squeeze(sum(sum(N2)))/(10^10))
+hold on;
+plot((1:200/dt)*dt, squeeze(sum(sum(N2_core(:,:,:))))/(10^10))
+plot((1:200/dt)*dt, squeeze(sum(sum(N2_fringe(:,:,:))))/(10^10))
+% ylim([0,60])
+xlabel("Time (Days)")
+ylabel("Number of Cells ($10^{10}$ Cells)")
+legend("Total Number of Tumor Cells", "Cells at the Core", "Cells at the Fringe")
+hold off;
 
 figure(3)
-plot(squeeze(-log10(H(50, 50, :))))
-xlabel("Time")
+plot((1:200/dt)*dt, squeeze(-log10(H(50, 50, :))))
+xlabel("Time (Days)")
 ylabel("pH at center of tumor")
+
+figure(4)
+plot(1:100, 1000*squeeze(P(:,50,1)))
+hold on;
+plot(1:100, 1000*squeeze(P(:,50,1250)))
+plot(1:100, 1000*squeeze(P(:,50,5000)))
+plot(1:100, 1000*squeeze(P(:,50,10000)))
+title("MMP Concentration Through Tumor at y = 50 mm")
+xlabel("Distance (mm)")
+ylabel("MMP Concentration (mM)")
+legend("0 Days","25 Days", "100 Days", "200 Days")
+hold off;
+
+figure(5)
+plot(1:100, 1000*squeeze(M(:,50,1)))
+hold on;
+plot(1:100, 1000*squeeze(M(:,50,1250)))
+plot(1:100, 1000*squeeze(M(:,50,5000)))
+plot(1:100, 1000*squeeze(M(:,50,10000)))
+title("ECM Concentration Through Tumor at y = 50 mm")
+xlabel("Distance (mm)")
+ylabel("ECM Concentration (mM)")
+legend("0 Days","25 Days", "100 Days", "200 Days")
+hold off;
 
 %Use this code for saving variables for plotting later:
 % Nt0 = N2;
