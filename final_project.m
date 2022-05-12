@@ -6,6 +6,7 @@ close all
 %% initialize variables
 % refer to the google doc for a description of each parameter & their sources:
 % https://docs.google.com/spreadsheets/d/13LxiwIeWfVTxi7gsmRAGJGKGRv3-lwYtxaVlOxKLEW8/edit#gid=0
+
 k1 = 0.1728;
 k2 = 2.76E-01;
 th1 = 5.00E+08;
@@ -13,7 +14,7 @@ th2 = 5.00E+08;
 a1 = 5.00E+08;
 a2 = 5.00E+08;
 Dn1 = 1.73E-05;
-Dn2 = 1.73E-05;
+Dn2 = 1.73E-05*1000; %multiplied because cells werent diffusing in time
 d1 = 3.46E-01;
 d2 = 5.53E-01;
 %H1opt = 3.98E-08;
@@ -24,7 +25,7 @@ H1opt = 7.4;
 H1width = 11.4;
 H2opt = 6.8;
 H2width = 10.8;
-Dh = 4.32E-01;
+Dh = 4.32E-01/10; %had to divide this by 10 because it was causing difficulties with the finite difference, the behavior still appears essentially the same 
 kacid = 1.9E-12/1000; %changed this because uptake/production was dominating diffusion
 dh = 2.59E+03/1000; %changed this because uptake/production was dominating diffusion
 Ho = 3.98E-08;  %pH 7.4 (10^-7.4)
@@ -33,19 +34,20 @@ kneut = 1; %estimate
 Db = 9.50E-01;
 Dp = 8.21E-04;
 kp = 1.3E-12;
-dp = 1E6;
-km = 8.64E-3; %make this lower if M() keeps going negative
+dp = 0.013; %a lot slower: P was being degraded too fast and wasn't changing M
+km = 8.64E-3*1000; %make this lower if M() keeps going negative
 
 Bpulse = 0; %change this to assess treatment efficacy
+treattimes = -1; %[5000];
 Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
 dx = 0.1; %cm
 dy = 0.1; %cm
-dt = 0.002; %day
+dt = 0.02; %day
 sx = 10; %cm
 sy = 10; %cm
-tfinal = 20; %days
+tfinal = 200; %days
 
 %% Initial Conditions
 
@@ -58,24 +60,24 @@ P = zeros(sx/dx, sy/dx, tfinal/dt);
 
 load('cellmaps.mat');
 
-N1(:, :, 1) = n1init*N1o; 
+%N1(:, :, 1) = n1init*N1o; 
 N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 
-H(:, :, 1) = Ho; %initialize tumor and healthy tissue with respective pH values
+H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
 B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
-%M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
+M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
 fign = 1;
 figure(fign)
 subplot(2, 3, 1)
-imagesc(N1(:, :, 1))
-title("N_1")
-colorbar
-subplot(2, 3, 4)
 imagesc(N2(:, :, 1))
-title("N_2")
+title("N")
 colorbar
+%subplot(2, 3, 4)
+%imagesc(N2(:, :, 1))
+%title("N_2")
+%colorbar
 subplot(2, 3, 2)
 imagesc(-log10(H(:, :, 1)))
 title("pH")
@@ -96,14 +98,16 @@ colorbar
 fign = fign+1;
 %% run simulation
 for t = 2:tfinal/dt
-    disp(t)
+    if mod(t,10) == 0
+        disp(t)
+    end
     for x = 1:sx/dx
         for y = 1:sy/dy
             %z = 1-(N1(x,y,t)/(th1-a1*M(x,y,t)))-(N2(x,y,t)/(th2-a2*M(x,y,t)))
 
-            if x == 43 && y == 50 && t>7000 && mod(t,1000)==0
-                disp("pause here")
-            end
+%             if x == 43 && y == 50 && t>2000 && mod(t,1000)==0
+%                 disp("pause here")
+%             end
 
             if x == 1
                 N1_xx = (1/dx^2)*(2*N1(x+1,y,t-1)-2*N1(x,y,t-1)); %second derivative of N1 wrt x
@@ -199,15 +203,21 @@ for t = 2:tfinal/dt
             P_DEG = -dp*P(x,y,t-1);   %MMP degredation
             P(x,y,t) = P(x,y,t-1) + dt*(P_DIF + P_PROD + P_DEG);
 
+
+            %DRUG TREATMENT: change this part to try different treatments
+            if t == treattimes
+                B(:, :, t) = Bpulse;
+            end
+
             %im going to do a check here for any negative values
             %things keep being negative and screwing all the other
             %equations up
-            N1(x,y,t) = checkbounds(N1(x,y,t),0,th1);
-            N2(x,y,t) = checkbounds(N2(x,y,t),0,th2);
-            H(x,y,t) = checkbounds(H(x,y,t),0,1); %1mmol/cm^3 is pH 0
-            B(x,y,t) = checkbounds(B(x,y,t),0,1E10);
-            M(x,y,t) = checkbounds(M(x,y,t),0,Mo); %should not ever increase over starting concentration
-            P(x,y,t) = checkbounds(P(x,y,t),0,1E10);
+            N1(x,y,t) = checkbounds(N1(x,y,t),0,th1,'N1');
+            N2(x,y,t) = checkbounds(N2(x,y,t),0,th2,'N2');
+            H(x,y,t) = checkbounds(H(x,y,t),0,1,'H'); %1mmol/cm^3 is pH 0
+            B(x,y,t) = checkbounds(B(x,y,t),0,1E10,'B');
+            M(x,y,t) = checkbounds(M(x,y,t),0,Mo,'M'); %should not ever increase over starting concentration
+            P(x,y,t) = checkbounds(P(x,y,t),0,1,'P');
         end
     end
     if mod(t, 1000) == 0
@@ -215,13 +225,13 @@ for t = 2:tfinal/dt
         disp(t);
         figure(fign)
         subplot(2, 3, 1)
-        imagesc(N1(:, :, t))
-        title("N_1")
-        colorbar
-        subplot(2, 3, 4)
         imagesc(N2(:, :, t))
-        title("N_2")
+        title("N")
         colorbar
+        %subplot(2, 3, 4)
+        %imagesc(N2(:, :, t))
+        %title("N_2")
+        %colorbar
         subplot(2, 3, 2)
         imagesc(-log10(H(:, :, t)))
         title("pH")
@@ -263,10 +273,12 @@ for t = 2:tfinal/dt
     end
 end
 
-function r = checkbounds(f, lb, ub)
+function r = checkbounds(f, lb, ub, var)
     if f < lb
+        %disp(["Lower bound reached: ", var, f])
         f = lb;
     elseif f > ub
+        %disp(["Upper bound reached: ", var, f])
         f = ub;
     end
     r = f;
