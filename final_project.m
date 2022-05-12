@@ -30,15 +30,15 @@ kacid = 1.9E-12/1000; %changed this because uptake/production was dominating dif
 dh = 2.59E+03/1000; %changed this because uptake/production was dominating diffusion
 Ho = 3.98E-08;  %pH 7.4 (10^-7.4)
 Htumor = 1.58E-07;  %pH 6.8 (10^-6.8)
-kneut = 1; %estimate
-Db = 9.50E-01;
+kneut = 1E6; %estimate
+Db = 9.50E-01/10; %had to lower this for the same reason as Dh
 Dp = 8.21E-04;
 kp = 1.3E-12;
 dp = 0.013; %a lot slower: P was being degraded too fast and wasn't changing M
 km = 8.64E-3*1000; %make this lower if M() keeps going negative
 
-Bpulse = 0; %change this to assess treatment efficacy
-treattimes = -1; %[5000];
+Bpulse = 1E-5; %mmol/cm^3 (molar), change this to assess treatment efficacy
+treattimes = [2000];
 Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
@@ -64,7 +64,7 @@ load('cellmaps.mat');
 N2(:, :, 1) = n2init*th2; %assume tumor cells are at carrying capacity
 
 H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue with respective pH values
-B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
+%B(:, :, 1) = Bpulse; %If treatment is immediatelly administered at t=1
 M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 P(:, :, 1) = 0; %probably dont need P initial condition, but maybe?
 
@@ -74,28 +74,35 @@ subplot(2, 3, 1)
 imagesc(N2(:, :, 1))
 title("N")
 colorbar
-%subplot(2, 3, 4)
-%imagesc(N2(:, :, 1))
-%title("N_2")
-%colorbar
+caxis([0, th2])
+subplot(2, 3, 4)
+tlabel = text(0.45,0.5,"0 days");
+set(subplot(2, 3, 4),'visible','off')
 subplot(2, 3, 2)
 imagesc(-log10(H(:, :, 1)))
 title("pH")
 colorbar
+caxis([6.5, 7.5])
 subplot(2, 3, 5)
 imagesc(B(:, :, 1))
 title("B")
 colorbar
+caxis([0, Bpulse])
 subplot(2, 3, 3)
 imagesc(M(:, :, 1))
 title("M")
 colorbar
+caxis([0, Mo])
 subplot(2, 3, 6)
 imagesc(P(:, :, 1))
 title("P")
 colorbar
+caxis([0, 0.05])
 
 fign = fign+1;
+
+%pause(3)
+
 %% run simulation
 for t = 2:tfinal/dt
     if mod(t,10) == 0
@@ -215,39 +222,43 @@ for t = 2:tfinal/dt
             N1(x,y,t) = checkbounds(N1(x,y,t),0,th1,'N1');
             N2(x,y,t) = checkbounds(N2(x,y,t),0,th2,'N2');
             H(x,y,t) = checkbounds(H(x,y,t),0,1,'H'); %1mmol/cm^3 is pH 0
-            B(x,y,t) = checkbounds(B(x,y,t),0,1E10,'B');
+            B(x,y,t) = checkbounds(B(x,y,t),0,1,'B');
             M(x,y,t) = checkbounds(M(x,y,t),0,Mo,'M'); %should not ever increase over starting concentration
             P(x,y,t) = checkbounds(P(x,y,t),0,1,'P');
         end
     end
-    if mod(t, 1000) == 0
+    if mod(t, 100) == 0
         % print plots
         disp(t);
-        figure(fign)
+        figure(1)
         subplot(2, 3, 1)
         imagesc(N2(:, :, t))
         title("N")
         colorbar
-        %subplot(2, 3, 4)
-        %imagesc(N2(:, :, t))
-        %title("N_2")
-        %colorbar
+        caxis([0, th2])
+        subplot(2, 3, 4)
+        tlabel = text(0.45,0.5,string(t*dt)+" days");
+        set(subplot(2, 3, 4),'visible','off')
         subplot(2, 3, 2)
         imagesc(-log10(H(:, :, t)))
         title("pH")
         colorbar
+        caxis([6, 8])
         subplot(2, 3, 5)
         imagesc(B(:, :, t))
         title("B")
         colorbar
+        caxis([0, Bpulse])
         subplot(2, 3, 3)
         imagesc(M(:, :, t))
         title("M")
         colorbar
+        caxis([0, Mo])
         subplot(2, 3, 6)
         imagesc(P(:, :, t))
         title("P")
         colorbar
+        caxis([0, 0.05])
 
         fign = fign+1;
         drawnow;
@@ -272,6 +283,16 @@ for t = 2:tfinal/dt
 
     end
 end
+
+figure(2)
+plot(squeeze(sum(sum(N2))))
+xlabel("Time")
+ylabel("Total Number of Tumor Cells")
+
+figure(3)
+plot(squeeze(-log10(H(50, 50, :))))
+xlabel("Time")
+ylabel("pH at center of tumor")
 
 function r = checkbounds(f, lb, ub, var)
     if f < lb
