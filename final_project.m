@@ -300,7 +300,6 @@ xlabel("Time")
 ylabel("pH at center of tumor")
 
 %Use this code for saving variables for plotting later:
-% N2to = N2;
 % Nt0 = N2;
 % pHt0 = -log10(H);
 % Bt0 = B;
