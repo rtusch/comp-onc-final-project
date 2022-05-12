@@ -72,7 +72,7 @@ dp = 0.013; %a lot slower: P was being degraded too fast and wasn't changing M
 km = 8.64E-3*1000; %make this lower if M() keeps going negative
 
 Btot = 5E-5; %mmol/cm^3 (molar, 50E-6=50uM)
-%treattimes = []; %change this to assess treatment efficacy
+% treattimes = []; %change this to assess treatment efficacy
 %treattimes = [5000];
 treattimes = [2500 5000 7500];
 %treattimes = [1500 3000 4500 6000 7500 9000];
@@ -94,12 +94,12 @@ isFringe = zeros(100,100);
 radius_squared = 80;
 for x = 1:100
     for y = 1:50
-        if (y <= 50 - sqrt(radius_squared-(x-50)^2))
+        if (y <= 50.5 - sqrt(radius_squared-(x-50.5)^2))
             isFringe(x,y) = 1;
         end
     end
     for y = 51:100
-        if (y >= 51 + sqrt(radius_squared-(x-51)^2))
+        if (y >= 50.5 + sqrt(radius_squared-(x-50.5)^2))
             isFringe(x,y) = 1;
         end
     end
@@ -126,19 +126,26 @@ H(:, :, 1) = Ho*n1init + Htumor*n2init; %initialize tumor and healthy tissue wit
 M(:, :, 1) = Mo-n2init*0.5*Mo; %assume matrix is half degraded where tumor is 
 
 radius_squared = 100;
-for x = 1:100
+for x = linspace(1,100,1000)
     for y = 1:50
         if (y == floor(50 - sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 - sqrt(radius_squared-(x-50)^2)))
-            P_initial(x,y,1) = 0.01;
+            P_initial(floor(x),y,1) = 0.01;
+            P_initial(ceil(x),y,1) = 0.01;
         end
     end
     for y = 51:100
         if (y == floor(50 + sqrt(radius_squared-(x-50)^2))) || (y == ceil(50 + sqrt(radius_squared-(x-50)^2)))
-            P_initial(x,y,1) = 0.01;
+            P_initial(floor(x),y,1) = 0.01;
+            P_initial(ceil(x),y,1) = 0.01;
         end
     end
 end
 P(:, :, 1) = P_initial; %ring of MMPs initially around tumor
+
+%make video animation
+% myVideo = VideoWriter('Treatment'); %open video file
+% myVideo.FrameRate = 10;  %can adjust this, 5 - 10 works well for me
+% open(myVideo);
 
 fign = 1;
 figure(fign)
@@ -170,7 +177,6 @@ imagesc(P(:, :, 1))
 title("P")
 colorbar
 caxis([0, 0.015])
-
 fign = fign+1;
 
 %% run simulation
@@ -327,7 +333,8 @@ for t = 2:tfinal/dt
 
         fign = fign+1;
         drawnow;
-
+%         frame = getframe(gcf); %get frame
+%         writeVideo(myVideo, frame);
 %         if t == 100
 %             subplot(2, 1, 1)
 %             imagesc(N1(:, :, 1))
@@ -349,6 +356,7 @@ for t = 2:tfinal/dt
     end
 end
 
+% close(myVideo)
 N2_fringe = zeros(100,100,tfinal/dt);
 N2_core = zeros(100,100,tfinal/dt);
 for x = 1:100
@@ -360,46 +368,46 @@ for x = 1:100
         end
     end
 end
-
-figure(2)
-plot((1:200/dt)*dt, squeeze(sum(sum(N2)))/(10^10))
-hold on;
-plot((1:200/dt)*dt, squeeze(sum(sum(N2_core(:,:,:))))/(10^10))
-plot((1:200/dt)*dt, squeeze(sum(sum(N2_fringe(:,:,:))))/(10^10))
-% ylim([0,60])
-xlabel("Time (Days)")
-ylabel("Number of Cells ($10^{10}$ Cells)")
-legend("Total Number of Tumor Cells", "Cells at the Core", "Cells at the Fringe")
-hold off;
-
-figure(3)
-plot((1:200/dt)*dt, squeeze(-log10(H(50, 50, :))))
-xlabel("Time (Days)")
-ylabel("pH at center of tumor")
-
-figure(4)
-plot(1:100, 1000*squeeze(P(:,50,1)))
-hold on;
-plot(1:100, 1000*squeeze(P(:,50,1250)))
-plot(1:100, 1000*squeeze(P(:,50,5000)))
-plot(1:100, 1000*squeeze(P(:,50,10000)))
-title("MMP Concentration Through Tumor at y = 50 mm")
-xlabel("Distance (mm)")
-ylabel("MMP Concentration (mM)")
-legend("0 Days","25 Days", "100 Days", "200 Days")
-hold off;
-
-figure(5)
-plot(1:100, 1000*squeeze(M(:,50,1)))
-hold on;
-plot(1:100, 1000*squeeze(M(:,50,1250)))
-plot(1:100, 1000*squeeze(M(:,50,5000)))
-plot(1:100, 1000*squeeze(M(:,50,10000)))
-title("ECM Concentration Through Tumor at y = 50 mm")
-xlabel("Distance (mm)")
-ylabel("ECM Concentration (mM)")
-legend("0 Days","25 Days", "100 Days", "200 Days")
-hold off;
+% 
+% figure(2)
+% plot((1:200/dt)*dt, squeeze(sum(sum(N2)))/(10^10))
+% hold on;
+% plot((1:200/dt)*dt, squeeze(sum(sum(N2_core(:,:,:))))/(10^10))
+% plot((1:200/dt)*dt, squeeze(sum(sum(N2_fringe(:,:,:))))/(10^10))
+% % ylim([0,60])
+% xlabel("Time (Days)")
+% ylabel("Number of Cells ($10^{10}$ Cells)")
+% legend("Total Number of Tumor Cells", "Cells at the Core", "Cells at the Fringe")
+% hold off;
+% 
+% figure(3)
+% plot((1:200/dt)*dt, squeeze(-log10(H(50, 50, :))))
+% xlabel("Time (Days)")
+% ylabel("pH at center of tumor")
+% 
+% figure(4)
+% plot(1:100, 1000*squeeze(P(:,50,1)))
+% hold on;
+% plot(1:100, 1000*squeeze(P(:,50,1250)))
+% plot(1:100, 1000*squeeze(P(:,50,5000)))
+% plot(1:100, 1000*squeeze(P(:,50,10000)))
+% title("MMP Concentration Through Tumor at y = 50 mm")
+% xlabel("Distance (mm)")
+% ylabel("MMP Concentration (mM)")
+% legend("0 Days","25 Days", "100 Days", "200 Days")
+% hold off;
+% 
+% figure(5)
+% plot(1:100, 1000*squeeze(M(:,50,1)))
+% hold on;
+% plot(1:100, 1000*squeeze(M(:,50,1250)))
+% plot(1:100, 1000*squeeze(M(:,50,5000)))
+% plot(1:100, 1000*squeeze(M(:,50,10000)))
+% title("ECM Concentration Through Tumor at y = 50 mm")
+% xlabel("Distance (mm)")
+% ylabel("ECM Concentration (mM)")
+% legend("0 Days","25 Days", "100 Days", "200 Days")
+% hold off;
 
 %Use this code for saving variables for plotting later:
 % Nt0 = N2;
