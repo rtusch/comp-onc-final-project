@@ -42,7 +42,7 @@ Btot = 5E-5; %mmol/cm^3 (molar, 50E-6=50uM)
 %treattimes = [5000];
 treattimes = [2500 5000 7500];
 %treattimes = [1500 3000 4500 6000 7500 9000];
-Bpulse = Btot/size(treattimes,2);
+Bpulse = Btot/3;
 Mo = 1.33E-2;
 N1o = th1*0.1; %estimated as 1/10th of carrying capacity 
 
